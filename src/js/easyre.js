@@ -1,9 +1,4 @@
 
-var easyRE = function (re) {
-	this.re = '';
-	this.set(re)
-}
-
 easyREhelp =`<b>\\n</b> Nueva línea<br>
 			 <b>\\t</b> Tabulador<br>
 			 <b>\\p</b> Palabra<br>
@@ -15,12 +10,10 @@ easyREhelp =`<b>\\n</b> Nueva línea<br>
 			 <b>\\s</b> Espacios o tabuladores juntos<br>
 			 `;
 
-easyRE.prototype = {
-	set: function(re) {
-		this.re = re;
-		this.re = this.re.replace(/\\v/g, '[aeiou]');
-		this.re = this.re.replace(/\\p/g, '\\w+');
-		this.re = this.re.replace(/\\#/g, '\\d+');
-		this.re = this.re.replace(/\\@/g, '\\d+[.,]\\d*'); // TODO: fix this! no encaja con 3343 sin decimales
-	}
+function easyRE(re) {
+	re = re.replace(/\\v/g, '[aeiou]');
+	re = re.replace(/\\p/g, '\\w+');
+	re = re.replace(/\\#/g, '\\d+');
+	re = re.replace(/\\@/g, '\\d+[.,]\\d*'); // TODO: fix this! no encaja con 3343 sin decimales
+	return re;
 }

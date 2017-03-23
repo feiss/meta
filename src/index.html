@@ -14,12 +14,14 @@
 <div id="all">
 	<div id="modal" @click="modal.visible = false" v-if="modal.visible"><div><h1>{{modal.title}}</h1><div v-html="modal.html"></div></div></div>
 	<nav>
+		<a href="?" class="logo">SWISS</a>
 		<div class="toolbutton" v-for="m in menuorder">
 			<a href="#">{{m}}</a>
 			<div>
-				<a href="#" @click="menuClick(menuitem)" v-for="menuitem in menus[m]" :class="{dimmed: opdefs[menuitem].type=='file' && !opdefs[menuitem]['action']}">{{opdefs[menuitem].label}}</a>
+				<a href="#" :id="'menu_'+opdefs[menuitem].id" @click="menuClick(menuitem)" v-for="menuitem in menus[m]" :class="{dimmed: opdefs[menuitem].type=='file' && !opdefs[menuitem]['action']}">{{opdefs[menuitem].label}}</a>
 			</div>
 		</div>
+		<span class="right">{{filename || 'Sin título'}}</span>
 	</nav>
 
 	<div id="ops">
@@ -28,7 +30,7 @@
 			<draggable v-model="oplist" @end="render">
 				<div v-for="(op, i) in oplist" class="opitem" :class="{active: op==selectedop}" @click="selectOp(op);setRenderCount(i)" :key="op.uuid" >
 					<span :class="{dimmed: i > rendercount}" class="opnum">{{i+1}}</span>
-					<span :class="{dimmed: i > rendercount}">{{opdefs[op.id].label}}</span>
+					<span :class="{dimmed: i > rendercount}">{{op.label}}</span>
 					<span class="toolbar">
 						<a href="javascript:;" @click="deleteOp(op.uuid, $event)" class="del">✕</a>
 						<a href="javascript:;" @click="toggleActive($event, op)" :class="{hiddenop: !op.active}">&#9679;</a>
@@ -105,6 +107,7 @@ ComponentRadio = {
 var app = new Vue({
 	el: '#all',
 	data: {
+		filename: null,
 		oplist: [],
 		opdefs: {},
 		selectedop: null,
@@ -136,6 +139,7 @@ var app = new Vue({
 			var def = this.opdefs[opid];
 			var op = {};
 			op.id = opid;
+			op.label = def.label;
 			op.uuid = 'ID'+Math.floor(Math.random()*99999999);
 			op.active = true;
 			if (def.params) {
@@ -288,19 +292,27 @@ var app = new Vue({
 			this.selectedop = null;
 		},
 		fileSave: function() {
-			var name = prompt('Nombre de fichero:', 'proyecto.json');
-			var json = {name: name, version: VERSION, oplist : this.oplist};
+			if (!this.filename) {
+				this.filename = prompt('Nombre de fichero:', 'proyecto.json');
+			}
+			var json = {name: this.filename, version: VERSION, oplist : this.oplist};
 
-			var win = window.open(null, 'saveproject', '');
-			win.document.write(JSON.stringify(json));
+			document.getElementById('menu_op_file_save').href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(json));
+			document.getElementById('menu_op_file_save').download = this.filename;
 		},
 		keyDown: function(evt) {
 			if (evt.target.tagName=='INPUT' || evt.target.tagName=='TEXTAREA') return;
 			switch(evt.keyCode){
+				case 13: // enter
+					document.querySelector('#params input').focus();
+				break;
 				case 46: // delete
 					if (this.selectedop){
 						this.deleteOp(this.selectedop.uuid);
 					}
+				break;
+				case 113: // F2
+					this.renameOp();
 				break;
 				case 40: // down
 					if (this.selectedop){
@@ -322,6 +334,13 @@ var app = new Vue({
 				break;
 			}
 			//console.log(evt.keyCode)
+		},
+		renameOp: function() {
+			if(!this.selectedop) return;
+			var oldname = this.selectedop.label;
+			var newname = prompt('Renombrar:', oldname);
+			if (!newname) return;
+			this.selectedop.label = newname;
 		},
 		reorder: function(el) {
 			var num = parseInt(el.querySelector('.opnum').innerHTML, 10);
@@ -395,9 +414,9 @@ app.registerOp({
 		{id: 'casesensitive', label: 'Sensible a mayúsculas', type: 'bool', default: false}
 	],
 	render: function (input, selection, op){
-		var re = new easyRE(op.search);
+		var re = easyRE(op.search);
 		try{
-			var regexp = new RegExp( re.re, 'g'+(op.casesensitive?'':'i'));
+			var regexp = new RegExp( re, 'g'+(op.casesensitive?'':'i'));
 		}
 		catch(e){
 			return '<div class="error">error en el campo de búsqueda</div>';

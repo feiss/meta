@@ -127,6 +127,9 @@ a.hiddenop, .opitem:hover a.hiddenop{
 .entry input[type="number"]{
 	width: 3rem;
 }
+.right{
+	float: right;
+}
 #preview{
 	float: left;
 	max-width: calc(100% - 480px);

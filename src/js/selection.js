@@ -58,9 +58,11 @@ Selection.prototype = {
 		}
 		//remove duples
 		var res = [];
-		arr.forEach(function(item) {
-			if(res.indexOf(item) < 0) res.push(item);
-		});
+		var arrlen = arr.length;
+		for (var i = 0; i < arrlen; i++) {
+			var it = arr[i];
+			if(res.indexOf(it) < 0) res.push(it);
+		}
 		if (sorted !== false) res.sort((a,b)=>a-b);		
 		return res;
 	},

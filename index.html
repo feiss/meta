@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Nodes</title>
+	<script src="selection.js"></script>
+	<script src="easyre.js"></script>
+	<script src="vue.js"></script>
+	<script src="sortable.js"></script>
+	<script src="vuedraggable.min.js"></script>
+	<link rel="stylesheet" href="style.css"></link>
+</head>
+<body>
+<div id="all">
+	<div id="modal" @click="modal.visible = false" v-if="modal.visible"><div><h1>{{modal.title}}</h1><div v-html="modal.html"></div></div></div>
+	<nav>
+		<div class="toolbutton" v-for="m in menuorder">
+			<a href="#">{{m}}</a>
+			<div>
+				<a href="#" @click="menuClick(menuitem)" v-for="menuitem in menus[m]" :class="{dimmed: opdefs[menuitem].type=='file' && !opdefs[menuitem]['action']}">{{opdefs[menuitem].label}}</a>
+			</div>
+		</div>
+	</nav>
+
+	<div id="ops">
+		<h1>Operaciones</h1>
+		<div id="oplist">
+			<draggable v-model="oplist" @end="render">
+				<div v-for="(op, i) in oplist" class="opitem" :class="{active: op==selectedop}" @click="selectOp(op);setRenderCount(i)" :key="op.uuid" >
+					<span :class="{dimmed: i > rendercount}" class="opnum">{{i+1}}</span>
+					<span :class="{dimmed: i > rendercount}">{{opdefs[op.id].label}}</span>
+					<span class="toolbar">
+						<a href="javascript:;" @click="deleteOp(op.uuid, $event)" class="del">✕</a>
+						<a href="javascript:;" @click="toggleActive($event, op)" :class="{hiddenop: !op.active}">&#9679;</a>
+					</span>
+				</div>
+			</draggable>
+		</div>
+	</div>
+	<div id="params" v-if="selectedop">
+		<h1>{{opdefs[selectedop.id].label}}</h1>
+		<component v-for="params in opdefs[selectedop.id].params" v-model="selectedop[params.id]" :is="params.type" :label="params.label" :value="params.default" :options="params.options" :key="params.id">
+	</div>
+	<div id="preview" :class="{displaced: selectedop}">
+		<h1>Resultado</h1>
+		<div id="result" v-html="result"></div>
+	</div>
+</div>
+
+
+<script>
+var VERSION= '0.1';
+
+
+ComponentBool = {
+	props:['label', 'value'], 
+	template: '<div class="entry"><label><input type="checkbox" :checked="value" @click="updateValue($event.target.checked)"/> {{label}}</label></div>',
+	methods: { 
+		updateValue: function(value) { this.$emit('input', value); app.render();}
+	}
+};
+
+ComponentInt = {
+	props:['label', 'value', 'options'], 
+	template: '<div class="entry"><label>{{label}}:</label> <input type="number" :value="value" @input="updateValue($event.target.value)" :min="options.min" :max="options.max"/></div>',
+	methods: { 
+		updateValue: function(value) { this.$emit('input', value); app.render();}
+	}
+};
+
+ComponentStr = {
+	props:['label', 'value'], 
+	template: '<div class="entry"><label>{{label}}:</label> <input type="text" :value="value" @input="updateValue($event.target.value)"/></div>',
+	methods: { 
+		updateValue: function(value) { this.$emit('input', value); app.render();}
+	}
+};
+
+ComponentRegexp = {
+	props:['label', 'value'], 
+	template: '<div class="entry"><label>{{label}}:</label> <input type="text" :value="value" @input="updateValue($event.target.value)"/> <a href="javascript:;" onclick="app.showModal(\'Códigos especiales\', easyREhelp)">?</a></div>',
+	methods: { 
+		updateValue: function(value) { this.$emit('input', value); app.render();}
+	}
+};
+
+ComponentTxt = {
+	props:['label', 'value'], 
+	template: '<div class="entry"><label>{{label}}:</label> <textarea @input="updateValue($event.target.value)">{{value}}</textarea></div>',
+	methods: { 
+		updateValue: function(value) { this.$emit('input', value); app.render();}
+	}
+};
+
+
+ComponentRadio = {
+	props:['label', 'value', 'options'], 
+	template: '<div class="entry">{{label}}:<br><label v-for="(k,p) in options"><input type="radio" :name="label" :value="p" @click="updateValue($event.target.value)" :checked="value==p?\'checked\':\'\'"/> {{k}}<br></label></div>',
+	methods: { 
+		updateValue: function(value) { this.$emit('input', value); app.render();}
+	}
+};
+
+
+var app = new Vue({
+	el: '#all',
+	data: {
+		oplist: [],
+		opdefs: {},
+		selectedop: null,
+		rendercount: Infinity,
+		selection: new Selection(), 
+		result: '',
+		menuorder: [],
+		menus: {},
+		modal: {visible: false, title: '', html: ''}
+	},
+	components: {
+		'bool': ComponentBool,
+		'int' : ComponentInt,
+		'str' : ComponentStr,
+		'regexp' : ComponentRegexp,
+		'txt' : ComponentTxt,
+		'radio' : ComponentRadio
+	},
+	methods: {
+		registerOp: function (op_def) {
+			Vue.set(this.opdefs, op_def.id, op_def);
+			if (this.menus[op_def.menu] === undefined) {
+				Vue.set(this.menus, op_def.menu, []);
+				this.menuorder.push(op_def.menu);
+			}
+			this.menus[op_def.menu].push(op_def.id);
+		},
+		newOp: function (opid) {
+			var def = this.opdefs[opid];
+			var op = {};
+			op.id = opid;
+			op.uuid = 'ID'+Math.floor(Math.random()*99999999);
+			op.active = true;
+			if (def.params) {
+				for (var i = 0; i < def.params.length; i++) {
+					op[def.params[i].id] = def.params[i].default;
+				}
+			}
+			return op;
+		},
+		addOp: function (opid, params) {
+
+			var op = this.newOp(opid);
+			this.oplist.push(op);
+			for (var param in params) {
+				op[param] = params[param];
+			}
+			this.render();
+		},
+		addOpSelect: function (ev) {
+			if (ev.target.value == '0') return;
+			var op = this.newOp(ev.target.value);
+			this.oplist.push(op);
+			ev.target.value = '0';
+			this.selectOp(op);
+			this.setRenderCount(Infinity);
+		},
+		menuClick: function (opid) {
+			if (this.opdefs[opid].type === 'file') {
+				this.doAction(opid);
+			}
+			else {
+				this.addOp(opid);
+			}
+		},
+		doAction: function (opid) {
+			var action = this[this.opdefs[opid].action];
+			if (action !== undefined) action();
+			else console.error('Function '+this.opdefs[opid].action+' not found');
+		},
+		getOpIndexFromUUID: function(uuid) {
+			for (var i = 0; i < this.oplist.length; i++) {
+				if (this.oplist[i].uuid === uuid) {
+					return i;
+				}
+			}
+			return null;
+		},
+		deleteOp: function(uuid, event) {
+			if (event) event.stopPropagation();
+			var i = this.getOpIndexFromUUID(uuid);
+			if (i === null) return;
+			if (this.selectedop && this.selectedop.uuid == uuid) {
+				this.selectOp(this.oplist[i]);
+			}
+			this.oplist.splice(i, 1);
+			this.render();
+		},
+		toggleActive: function(event, op) {
+			event.stopPropagation();
+			op.active = !op.active;
+			this.render();
+		},
+		duplicateOp: function(event, uuid) {
+			event.stopPropagation();
+			var i = this.getOpIndexFromUUID(uuid);
+			if (i === null) return;
+			var op = this.oplist[i];
+			var newop = this.newOp(op.id);
+			for (var p in op) {
+				if (p !== 'uuid') newop[p] = op[p];
+			}
+			this.oplist.splice(i, 0, op);
+			this.render();
+		},
+		selectOp: function(op){
+			this.selectedop = op;
+		},
+		selectAll: function(){
+			if (document.selection) {
+				var range = document.body.createTextRange();
+				range.moveToElementText(document.getElementById('result'));
+				range.select();
+			} 
+			else if (window.getSelection) {
+				var range = document.createRange();
+				range.selectNode(document.getElementById('result'));
+				window.getSelection().addRange(range);
+			}
+		},
+		setRenderCount: function(c) {
+			this.rendercount = c == this.oplist.length - 1 ? Infinity : c;
+			this.render();
+		},
+		render: function () {
+			//calculate result
+			this.selection.clear();
+			var v = '';
+			for(var i = 0; i < Math.min(this.rendercount + 1, this.oplist.length); i++) {
+				var op = this.oplist[i];
+				if (!op.active) continue;
+				if (this.opdefs[op.id].type.substr(0, 4) == 'sel_'){
+					this.opdefs[op.id].render(v, this.selection, op);
+				}
+				else {
+					v = this.opdefs[op.id].render(v, this.selection, op);
+					if (v===undefined) break;
+				}
+			}
+			//render preview
+			this.result = '';
+			if (v===undefined) {
+				this.result == 'UNDEFINED';
+			}
+			else if (typeof(v) === 'string') {
+				this.result = this.selection.highlightText(v.replace(/\n/g, '<br>'), '<span class="sel">', '</span>');
+			}
+			else if (v['length'] !== undefined) {
+				var sel = this.selection.toArray();
+				var table = '<table>';
+				var cols = v[0].length;
+				table += '<tr><td class="head"></td>';
+				for (var c = 0; c < cols; c++){
+					code = String.fromCharCode(65+(c % 26));
+					if (c > 25) code = String.fromCharCode(64+(c/26|0)) + code;
+					table += '<td class="head">'+code+'</td>';
+				}
+				table += '</tr>';
+				var i = 0, lastpos = 0, pos = 0; 
+				for (var r = 0; r < v.length; r++){
+					table += '<tr><td class="head">'+(r+1)+'</td>';
+					for (var c = 0; c < cols; c++, i++){
+						pos = sel.indexOf(i, lastpos);
+						table += '<td'+ (pos !== -1 ?' class="sel"':'') +'>' + (v[r][c] !== undefined ? v[r][c] : '') + '</td>';
+						if (pos !== -1) lastpos = pos;
+					}
+					table += '</tr>';
+				}
+				this.result = table + '</table>';
+			}
+		},
+		fileNew: function() {
+			if (!confirm('Nuevo proyecto?')) return;
+			this.oplist = [];
+			this.result = '';
+			this.selectedop = null;
+		},
+		fileOpen: function() {
+			this.oplist = [];
+			this.result = '';
+			this.selectedop = null;
+		},
+		fileSave: function() {
+			var name = prompt('Nombre de fichero:', 'proyecto.json');
+			var json = {name: name, version: VERSION, oplist : this.oplist};
+
+			var win = window.open(null, 'saveproject', '');
+			win.document.write(JSON.stringify(json));
+		},
+		keyDown: function(evt) {
+			if (evt.target.tagName=='INPUT' || evt.target.tagName=='TEXTAREA') return;
+			switch(evt.keyCode){
+				case 46: // delete
+					if (this.selectedop){
+						this.deleteOp(this.selectedop.uuid);
+					}
+				break;
+				case 40: // down
+					if (this.selectedop){
+						var idx = this.getOpIndexFromUUID(this.selectedop.uuid);
+						this.selectOp(this.oplist[Math.min(idx+1, this.oplist.length-1)]);
+					}
+					else {
+						this.selectOp(this.oplist[0]);
+					}
+				break;
+				case 38: // up
+					if (this.selectedop){
+						var idx = this.getOpIndexFromUUID(this.selectedop.uuid);
+						this.selectOp(this.oplist[Math.max(idx - 1, 0)]);
+					}
+					else {
+						this.selectOp(this.oplist[this.oplist.length - 1]);
+					}
+				break;
+			}
+			//console.log(evt.keyCode)
+		},
+		reorder: function(el) {
+			var num = parseInt(el.querySelector('.opnum').innerHTML, 10);
+			var next = el.nextSibling;
+			var pos = next ? parseInt(next.querySelector('.opnum').innerHTML, 10) : null;
+			var op = this.oplist.splice(num, 1); //remove op from list...
+			this.oplist.splice(pos, 0, op); //..and insert it at the new position
+
+			//this.render();
+		},
+		showModal: function (title, html) {
+			this.modal.title = title;
+			this.modal.html = html;
+			this.modal.visible = true;
+		}
+
+			
+	}
+});
+
+app.registerOp({ id: 'op_file_new', label: 'Nuevo...', type: 'file', menu: 'Proyecto', action: 'fileNew' });
+app.registerOp({ id: 'op_file_open', label: 'Abrir...', type: 'file', menu: 'Proyecto', action: 'fileOpen' });
+app.registerOp({ id: 'op_file_save', label: 'Guardar...', type: 'file', menu: 'Proyecto', action: 'fileSave' });
+
+app.registerOp({
+	id: 'op_new_text',
+	label: 'Nuevo texto',
+	type: 'all',
+	menu: 'Crear',
+	params: [
+		{id: 'texto', label: 'Texto', type: 'txt', default: 'lorem ipsum'}
+	],
+	render: function (input, selection, op){
+		return op.texto;
+	}
+});
+
+app.registerOp({
+	id: 'op_new_sheet',
+	label: 'Nueva matriz',
+	type: 'all',
+	menu: 'Crear',
+	params: [
+		{id: 'cols', label: 'Columnas', type: 'int', options: {min:1, max: 2000}, default: '4'},
+		{id: 'rows', label: 'Filas', type: 'int', options: {min:1, max: 2000}, default: '2'},
+		{id: 'initval', label: 'Valor inicial', type: 'str', default: ''},
+	],
+	render: function (input, selection, op){
+		var numrows = Math.max(1, op.rows);
+		var numcols = Math.max(1, op.cols);
+		var rows = new Array(parseInt(numrows));
+		for (var i = 0; i < numrows; i++) {
+			rows[i] = new Array(parseInt(numcols));
+			for (var j = 0; j < numcols; j++) {
+				rows[i][j] = op.initval;
+			}
+		}
+		return rows;
+	}
+});
+
+app.registerOp({
+	id: 'op_trim',
+	label: 'Buscar y reemplazar',
+	type: 'all',
+	menu: 'Editar',
+	params: [
+		{id: 'search', label: 'Buscar', type: 'regexp', default: ''},
+		{id: 'replace', label: 'Reemplazar por', type: 'str', default: ''},
+		{id: 'inselection', label: 'Buscar en la selección', type: 'bool', default: false},
+		{id: 'casesensitive', label: 'Sensible a mayúsculas', type: 'bool', default: false}
+	],
+	render: function (input, selection, op){
+		var re = new easyRE(op.search);
+		try{
+			var regexp = new RegExp( re.re, 'g'+(op.casesensitive?'':'i'));
+		}
+		catch(e){
+			return '<div class="error">error en el campo de búsqueda</div>';
+		}
+		//TODO inselection param is ignored
+		if (typeof(input) === 'string') return input.replace(regexp, op.replace);
+
+		var max = 0;
+		for (var i = 0; i < input.length; i++) {
+			for (var j = 0; j < input[i].length; j++) {
+				if (input[i][j]===undefined) continue;
+				input[i][j] = input[i][j].replace(regexp, op.replace);
+			}
+		}
+		return input;
+	}
+})
+
+
+app.registerOp({
+	id: 'op_split',
+	label: 'Texto => Matriz',
+	type: 'text',
+	menu: 'Convertir',
+	params: [
+		{id: 'separator', label: 'Separador de campos', type: 'str', default: ' '}
+	],
+	render: function (input, selection, op){
+		if (!input['split']) return [[]];
+		var m = input.split('\n');
+		var max = 0;
+		for (var i = 0; i < m.length; i++) {
+			m[i] = m[i].split(op.separator);
+			if (m[i].length > max) max = m[i].length;
+		}
+		for (var i = 0; i < m.length; i++) {
+			if (m[i].length < max) m[i][max-1] = undefined;
+		}
+		return m;
+	}
+})
+
+
+app.registerOp({
+	id: 'op_join',
+	label: 'Matriz => Texto',
+	type: 'matrix',
+	menu: 'Convertir',
+	params: [
+		{id: 'separator', label: 'Separador de campos', type: 'str', default: ';'}
+	],
+	render: function (input, selection, op){
+		if (typeof(input)==='string') return input;
+		var ret = '';
+		for (var i = 0; i < input.length; i++) {
+			ret += input[i].join(op.separator);
+			ret += '\n';
+		}
+		return ret;
+	}
+})
+
+
+app.registerOp({
+	id: 'op_sel_text',
+	label: 'Seleccionar',
+	type: 'sel_text',
+	menu: 'Seleccionar',
+	params: [
+		{id: 'start', label: 'Inicio', type: 'int', options:{min:0, max: 9999999}, default: 0},
+		{id: 'length', label: 'Longitud', type: 'int', options:{min:0, max: 9999999}, default: 1},
+		{id: 'pattern', label: 'Intervalos', type: 'str', default: ''},
+		{id: 'addToSelection', label: 'Añadir a la selección actual', type: 'bool', default: true}
+	],
+	render: function (input, selection, op){
+		if (!op.addToSelection) selection.clear();
+		var start = parseInt(op.start);
+		var length = parseInt(op.length);
+		if (op.pattern) selection.add(op.pattern);
+		else if (length == 0) { if (!op.addToSelection) selection.clear();}
+		else if (length == 1) selection.add(start);
+		else selection.add(start + '-' + (start + length - 1));
+	}
+})
+
+app.registerOp({
+	id: 'op_sel_all',
+	label: 'Seleccionar todo',
+	type: 'sel_all',
+	menu: 'Seleccionar',
+	params: [],
+	render: function (input, selection, op){
+		selection.set('0-', input);
+	}
+})
+
+app.registerOp({
+	id: 'op_sel_none',
+	label: 'Deseleccionar',
+	type: 'sel_all',
+	menu: 'Seleccionar',
+	params: [],
+	render: function (input, selection, op){
+		selection.clear();
+	}
+})
+
+app.registerOp({
+	id: 'op_del_selection',
+	label: 'Eliminar seleccionado',
+	type: 'all',
+	menu: 'Editar',
+	params: [],
+	render: function (input, selection, op){
+		if (typeof(input) === 'string'){
+			var inputtagged = selection.highlightText(input, '`', '´');
+			var ret = '', c;
+			var get = true;
+			for (var i = 0; i < inputtagged.length; i++) {
+				c = inputtagged[i];
+				if (c=='`') get = false;
+				else if (c=='´') get = true;
+				else if (get) ret += c;
+			}
+		}
+		else{
+			//ver si hay filas o columnas enteras seleccionadas y eliminarlas
+		}
+		selection.clear();
+		return ret;
+	}
+})
+
+
+app.registerOp({
+	id: 'op_replace_selection',
+	label: 'Escribir en selección',
+	type: 'all',
+	menu: 'Editar',
+	params: [
+		{id: 'text', label: 'Texto', type: 'str', default: '?'},
+		{id: 'chars', label: 'Reemplazar caracter a caracter', type: 'bool', default: true}, //TODO implementar el false!
+		{id: 'cells', label: 'Dividir celdas con ;', type: 'bool', default: true}, 
+		{id: 'sequence', label: 'Reemplazar por secuencia', type: 'bool', default: false},
+		{id: 'random', label: 'Reemplazar por números aleatorios', type: 'bool', default: false}
+	],
+	render: function (input, selection, op){
+		var arr = selection.toArray();
+		var seq = [], seqindex = 0;
+		if (op.sequence){
+			var s = new Selection();
+			s.set(op.text);
+			seq = s.toArray();
+			s = null;
+		}
+		if (typeof(input) === 'string'){
+			for (var i = 0; i < arr.length; i++) {
+	    	input = input.substr(0, arr[i]) + '`' + input.substr(arr[i]+1); //TODO: optimizar!!
+			}
+			if (op.sequence){
+				var p = input.indexOf('`');
+				while (p !== -1){
+		    	input = input.substr(0, p) + seq[seqindex] + input.substr(p+1);
+		    	seqindex = (seqindex + 1) % seq.length;
+		    	p = input.indexOf('`', p);
+				}
+
+			}
+			else {
+				input = input.replace(/`/g, op.text);
+			}
+		}
+		else{
+			if (op.sequence) {
+			}
+			else {
+				var texts = replaceEscape(op.text);
+				if (op.cells) seq = texts.split(';'); else seq = [texts];
+			}
+			seqindex = 0; 
+			var cols = input[0].length;
+			var total = input.length * cols;
+			for (var i = 0; i < arr.length; i++) {
+				if (i >= total) continue;
+				input[ arr[i] / cols | 0 ][ arr[i] % cols] = op.random ? Math.floor(Math.random()*100) : seq[seqindex];
+				seqindex = (seqindex + 1) % seq.length;
+			};
+		}
+		return input;
+	}
+})
+
+
+app.registerOp({
+	id: 'op_sel_rows',
+	label: 'Seleccionar filas',
+	type: 'sel_matrix',
+	menu: 'Seleccionar',
+	params: [
+		{id: 'alternate', label: 'Seleccionar', type: 'radio', options:{
+			'0':'Primera fila', 
+			'p':'Pares', 
+			'i':'Impares',
+			'z':'Última fila', 
+			'*':'Toda la tabla',
+			'?':'Intervalos:' 
+		}, default: 'p'},
+		{id: 'pattern', label: 'Intervalos', type: 'str', default: ''},
+		{id: 'addToSelection', label: 'Añadir a la selección actual', type: 'bool', default: true}
+	],
+	render: function (input, selection, op){
+		if (typeof(input)=='string'){
+			return;
+		}
+		if (!op.addToSelection) selection.clear();
+		var cols = input[0].length;
+		var start = 0;
+		switch(op.alternate){
+			case '*': selection.set('0-'); return;
+			case '0': selection.add('-'+(cols-1)); return;
+			case 'z': selection.add((input.length * cols - cols)+'-'); return;
+			case 'p': start = 1; break;
+			case 'i': start = 0; break;
+			case '?': 
+				var sel = new Selection();
+				sel.set(op.pattern);
+				var arr = sel.toArray();
+				for (var i = 0; i < arr.length; i++){
+					selection.add(((arr[i] - 1) * cols) + '-' + ((arr[i] - 1) * cols + cols - 1));
+				}
+				return;
+		}
+		// par o impar
+		for (var i = start; i < input.length; i+= 2) {
+			selection.add((i * cols)+'-'+(i*cols+cols-1));
+		};
+	}
+});
+
+
+app.registerOp({
+	id: 'op_sel_cols',
+	label: 'Seleccionar columnas',
+	type: 'sel_matrix',
+	menu: 'Seleccionar',
+	params: [
+		{id: 'alternate', label: 'Seleccionar', type: 'radio', options:{
+			'0':'Primera columna', 
+			'p':'Pares', 
+			'i':'Impares',
+			'z':'Última columna', 
+			'*':'Toda la tabla',
+			'?':'Intervalos:' 
+		}, default: 'p'},
+		{id: 'pattern', label: 'Intervalos', type: 'str', default: ''},
+		{id: 'addToSelection', label: 'Añadir a la selección actual', type: 'bool', default: true}
+	],
+	render: function (input, selection, op){
+		if (typeof(input)=='string'){
+			return;
+		}
+		if (!op.addToSelection) selection.clear();
+		var cols = input[0].length;
+		var rows = input.length;
+		var start = 0;
+		var pat = '';
+		switch(op.alternate){
+			case '*': selection.set('0-'); return;
+			case '0': pat = '1'; break;
+			case 'z': pat = ''+cols; break;
+			case 'p': start = 1; break;
+			case 'i': start = 0; break;
+			case '?': pat = op.pattern; break;
+		}
+		if (pat !== ''){
+			var sel = new Selection();
+			sel.set(pat);
+			var arr = sel.toArray();
+			for (var i = 0; i < arr.length; i++){
+				for (var j = 0; j < rows; j++){
+					selection.add( (arr[i] - 1) + j * cols);
+				}
+			}
+			return;
+		}
+
+		// par o impar
+		for (var i = start; i < input.length; i+= 2) {
+			for (var j = 0; j < rows; j++){
+				selection.add(i + j * cols);
+			}
+		}
+	}
+});
+
+
+app.registerOp({
+	id: 'op_export_select',
+	label: 'Seleccionar resultado',
+	type: 'file',
+	menu: 'Exportar',
+	action: 'selectAll'
+});
+
+app.registerOp({
+	id: 'op_export_csv',
+	label: 'Exportar CSV',
+	type: 'file',
+	menu: 'Exportar'
+});
+
+
+
+function replaceEscape(str){
+	str = str.replace(/\\n/g, '\n');
+	str = str.replace(/\\t/g, '\t');
+	return str;
+}
+
+for (var veces= 0; veces<2; veces++){
+	for(var i in app.opdefs){
+		if (app.opdefs[i].type!=='file') {
+			app.addOp(app.opdefs[i].id);
+		}
+	}
+}
+
+
+document.body.addEventListener('click', function(evt){
+	if(evt.target == document.body || evt.target.id=='oplist') app.selectOp(null);
+});
+
+document.body.addEventListener('keydown', function(evt){
+	app.keyDown(evt);
+});
+
+
+
+</script>
+
+
+</body>
+</html>

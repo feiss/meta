@@ -1,0 +1,264 @@
+html{
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+body{
+	margin: 0;
+	background: #ccc;
+	color: #333;
+	font: 12px sans-serif;
+	width: 100%;
+	height: 100%;
+}
+input, textarea, select{
+	border: none;
+	background: #ddd;
+	box-shadow: inset 1px 1px 2px rgba(0,0,0,0.5);
+	outline: none;
+	color: #555;
+	padding: 3px;
+	border-radius: 3px;
+	font-size: 13px;
+}
+a{
+	text-decoration: none;
+	color: #3af;
+	padding: 1px 3px;
+	border-radius: 2px;
+}
+a:hover{
+	color: #fff;
+	background: #3af;
+}
+.error{
+	color: red;
+}
+.toolbar{
+	margin: 10px 5px;
+}
+#ops{
+	width: 210px;
+	float: left;
+	margin-left: 10px;
+	box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+}
+#oplist{
+	max-height: 92vh;
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+.opitem{
+	display: block;
+	border-bottom: none;
+	margin: 0;
+	font-size: 12px;
+	font-weight: normal;
+	background: #eee;
+	padding: 3px;
+	cursor: pointer;
+}
+.opitem:hover{
+	background: #fff;
+}
+.opitem.active{
+	background: #3af;
+	color: #fff;
+}
+.opitem .toolbar{
+	float: right;
+	margin: 0;
+}
+.opitem .toolbar a{
+	padding: 0;
+	border-radius: 3px;
+	display: inline-block;
+	width: 14px;
+	text-align: center;
+	color: #999;
+	background: none !important;
+}
+.opitem.active .toolbar a.del{
+	color: #3af;
+}
+.opitem .toolbar a.del{
+	color: #eee;
+}
+.opitem:hover .toolbar a.del{
+	color: #777;
+}
+.opitem .opnum{
+	width: 22px;
+	text-align: right;
+	display: inline-block;
+	padding-right: 5px; 
+}
+.dimmed{
+	color: #aaa !important;
+}
+.opitem:hover .toolbar a:hover{
+	color: #3af;
+}
+.opitem.active .toolbar a:hover{
+	color: #fff;
+}
+a.hiddenop{
+	color: #ddd !important;
+}
+a.hiddenop, .opitem:hover a.hiddenop{
+	color: #ddd !important;
+}
+.opitem.active a.hiddenop{
+	color: #39e !important;
+}
+.entry{
+	padding: 5px 10px;
+}
+.entry label{
+	margin-right: 10px;
+	color: #888;
+}
+.entry textarea{
+	display: block;
+	width: 90%;
+	height: 100px;
+	margin: 5px 0;
+}
+.entry input[type="number"]{
+	width: 3rem;
+}
+#preview{
+	float: left;
+	max-width: calc(100% - 480px);
+	min-width: 100px;
+	max-height: 92vh;
+	overflow: auto;
+	margin-left: 15px;
+	background: #eee;
+	box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+}
+#result{
+	padding: 5px 8px;
+	padding-right: 30px;
+}
+#preview.displaced{
+	left: 450px;
+}
+#preview table{
+	border-collapse: collapse;
+}
+#preview table td{
+	border: 1px solid #555;
+	min-width: 1rem;
+	min-height: 1rem;
+	padding: 3px 5px;
+	text-align: left;
+}
+#preview table td.head{
+	border: none;
+	color: #999;
+	text-align: right;
+}
+#preview table tr:first-child td{
+	text-align: center;
+}
+#preview table td.sel, .sel{
+	border: 1px solid #3af;
+	background: #B9DEF9;
+}
+#params{
+	display: inline-block;
+	float: left;
+	width: 200px;
+	margin-left: 15px;
+	background: #eee;
+	box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+	padding-bottom: 10px;
+}
+h1{
+	font-size: 14px;
+	font-weight: 100;
+	padding: 4px 10px;
+	background: #3af;
+	color: #fff;
+	margin: 0;
+}
+#params label{
+	color: #666;
+	display: block;
+	margin: 3px 0;
+}
+
+nav{
+	padding: 2px 0px;
+	margin: 10px;
+}
+.toolbutton{
+	display: inline-block;
+	z-index: 1000;
+}
+.toolbutton:hover a{
+	background: #fff;	
+}
+.toolbutton:hover > a{
+	background: #eee;
+}
+.toolbutton a{
+	color: #666;
+	background: #ccc;
+	padding: 5px 10px;
+}
+.toolbutton a:hover{
+	background: #3af;
+	color: #fff;
+}
+.toolbutton div{
+	position: absolute;
+	display: none;	
+	margin-top: 5px;
+	box-shadow: 1px 2px 7px rgba(0,0,0,0.5);
+}
+.toolbutton:hover div{
+	display: block;	
+}
+.toolbutton > div > a{
+	display: block;
+}
+
+#modal{
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(100,100,100,0.5);
+	z-index: 500;
+}
+#modal>div{
+	background-color: white;
+	width: 400px;
+	margin: 10% auto;
+	background: white;
+	box-shadow: 0 1px 20px rgba(0,0,0,0.3);
+	padding: 2rem;
+	font-size: 14px;
+}
+#modal h1{
+	background: none;
+	color: #333;
+	font-size: 20px;
+	margin-bottom: 1rem;
+	padding: 0;
+}
+#modal div{
+	line-height: 1.5rem;
+}
+#modal div b{
+	display: inline-block;
+	width: 1rem;
+	margin-right: 1rem;
+	text-align: right;
+	font-weight: normal;
+	font-size: 18px;
+	letter-spacing: 2px;
+}

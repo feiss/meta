@@ -150,13 +150,13 @@ var app = new Vue({
 			return op;
 		},
 		addOp: function (opid, params) {
-
 			var op = this.newOp(opid);
 			this.oplist.push(op);
 			for (var param in params) {
 				op[param] = params[param];
 			}
 			this.render();
+			return op;
 		},
 		addOpSelect: function (ev) {
 			if (ev.target.value == '0') return;
@@ -355,9 +355,30 @@ var app = new Vue({
 			this.modal.title = title;
 			this.modal.html = html;
 			this.modal.visible = true;
+		},
+		dragNdropFiles: function(files) {
+			var self = this;
+			for (var i = 0; i < files.length; i++) {
+				var reader = new FileReader();
+				var filetype = files[i].name.substr(files[i].name.lastIndexOf('.')+1);
+				reader.onload = function(event){
+					switch(filetype){
+						case 'csv':
+							var op = self.addOp('op_new_sheet', {texto: event.target.result});
+							self.oplist.push(op);
+							self.selectOp(op);
+						break;
+						case 'txt':
+							var op = self.addOp('op_new_text', {texto: event.target.result});
+							self.oplist.push(op);
+							self.selectOp(op);
+						break;
+					}
+				}
+				reader.readAsText(files[i]);
+			};
 		}
 
-			
 	}
 });
 
@@ -574,14 +595,14 @@ app.registerOp({
 		}
 		if (typeof(input) === 'string'){
 			for (var i = 0; i < arr.length; i++) {
-	    	input = input.substr(0, arr[i]) + '`' + input.substr(arr[i]+1); //TODO: optimizar!!
+				input = input.substr(0, arr[i]) + '`' + input.substr(arr[i]+1); //TODO: optimizar!!
 			}
 			if (op.sequence){
 				var p = input.indexOf('`');
 				while (p !== -1){
-		    	input = input.substr(0, p) + seq[seqindex] + input.substr(p+1);
-		    	seqindex = (seqindex + 1) % seq.length;
-		    	p = input.indexOf('`', p);
+					input = input.substr(0, p) + seq[seqindex] + input.substr(p+1);
+					seqindex = (seqindex + 1) % seq.length;
+					p = input.indexOf('`', p);
 				}
 
 			}
@@ -754,6 +775,41 @@ document.body.addEventListener('keydown', function(evt){
 });
 
 
+//dnd
+(function(){
+	var dndtarget = document.getElementById('ops');
+
+	function onDragEnter(e) {
+			e.stopPropagation();
+			e.preventDefault();
+	}
+
+	function onDragOver(e) {
+			e.stopPropagation();
+			e.preventDefault();
+			dndtarget.style.border = '2px solid white';
+	}
+
+	function onDragLeave(e) {
+			e.stopPropagation();
+			e.preventDefault();
+			dndtarget.style.border = 'none';
+	}
+
+	function onDrop(e) {
+			e.stopPropagation();
+			e.preventDefault();
+			app.dragNdropFiles(e.dataTransfer.files);
+			dndtarget.style.border = 'none';
+			return false;
+	}
+
+	dndtarget.addEventListener('dragenter', onDragEnter, false);
+	dndtarget.addEventListener('dragover', onDragOver, false);
+	dndtarget.addEventListener('dragleave', onDragLeave, false);
+	dndtarget.addEventListener('drop', onDrop, false);
+
+})();
 
 </script>
 

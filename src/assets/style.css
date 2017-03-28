@@ -31,6 +31,16 @@ a:hover{
 	color: #fff;
 	background: #3af;
 }
+a.but{
+	background: #3af;
+	color: #fff;
+	border-radius: 6px;
+	padding: 6px 12px;
+	display: inline-block;
+}
+a.but:hover{
+	background: #4bf;
+}
 .error{
 	color: red;
 }
@@ -169,6 +179,12 @@ a.hiddenop, .opitem:hover a.hiddenop{
 	border: 1px solid #3af;
 	background: #B9DEF9;
 }
+.stats{
+	margin-top: 10px;
+	color: #b9b9b9;
+	padding: 0 10px;
+}
+
 #params{
 	display: inline-block;
 	float: left;

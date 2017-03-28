@@ -41,7 +41,8 @@
 	</div>
 	<div id="params" v-if="selectedop">
 		<h1>{{opdefs[selectedop.id].label}}</h1>
-		<component v-for="params in opdefs[selectedop.id].params" v-model="selectedop[params.id]" :is="params.type" :label="params.label" :value="params.default" :options="params.options" :key="params.id">
+		<component v-for="params in opdefs[selectedop.id].params" v-model="selectedop[params.id]" :is="params.type" :label="params.label" :value="params.default" :options="params.options" :key="params.id"></component>
+		<div class="stats" v-if="stats" v-html="stats"></div>
 	</div>
 	<div id="preview" :class="{displaced: selectedop}">
 		<h1>Resultado</h1>
@@ -104,6 +105,14 @@ ComponentRadio = {
 };
 
 
+ComponentButton = {
+	props:['label', 'value'], 
+	template: '<div class="entry"><a href="javascript:;" onclick="app.componentAction(event)" class="but" :action="value" :id="value">{{label}}</a></div>',
+	methods: { 
+	}
+};
+
+
 var app = new Vue({
 	el: '#all',
 	data: {
@@ -116,7 +125,8 @@ var app = new Vue({
 		result: '',
 		menuorder: [],
 		menus: {},
-		modal: {visible: false, title: '', html: ''}
+		modal: {visible: false, title: '', html: ''},
+		stats: null
 	},
 	components: {
 		'bool': ComponentBool,
@@ -124,16 +134,19 @@ var app = new Vue({
 		'str' : ComponentStr,
 		'regexp' : ComponentRegexp,
 		'txt' : ComponentTxt,
-		'radio' : ComponentRadio
+		'radio' : ComponentRadio,
+		'action' : ComponentButton
 	},
 	methods: {
 		registerOp: function (op_def) {
 			Vue.set(this.opdefs, op_def.id, op_def);
-			if (this.menus[op_def.menu] === undefined) {
-				Vue.set(this.menus, op_def.menu, []);
-				this.menuorder.push(op_def.menu);
+			if (op_def.menu) {
+				if (this.menus[op_def.menu] === undefined) {
+					Vue.set(this.menus, op_def.menu, []);
+					this.menuorder.push(op_def.menu);
+				}
+				this.menus[op_def.menu].push(op_def.id);
 			}
-			this.menus[op_def.menu].push(op_def.id);
 		},
 		newOp: function (opid) {
 			var def = this.opdefs[opid];
@@ -161,6 +174,8 @@ var app = new Vue({
 		addOpSelect: function (ev) {
 			if (ev.target.value == '0') return;
 			var op = this.newOp(ev.target.value);
+			this.oplist.push(op);
+			this.oplist.push(op);
 			this.oplist.push(op);
 			ev.target.value = '0';
 			this.selectOp(op);
@@ -250,11 +265,24 @@ var app = new Vue({
 			}
 			//render preview
 			this.result = '';
+			this.stats = null;
 			if (v===undefined) {
 				this.result == 'UNDEFINED';
 			}
 			else if (typeof(v) === 'string') {
 				this.result = this.selection.highlightText(v.replace(/\n/g, '<br>'), '<span class="sel">', '</span>');
+
+				if (v.length == 0) {
+					this.stats = '0 caracteres';
+				}
+				else {
+					var linecount = 1, charcount = 0;
+					for (var i = 0; i < v.length; i++) {
+						if (v[i] == '\n') linecount++;
+						else charcount ++;
+					};
+					this.stats = linecount + ' líneas, ' + charcount + ' caracteres';
+				}
 			}
 			else if (v['length'] !== undefined) {
 				var sel = this.selection.toArray();
@@ -278,6 +306,7 @@ var app = new Vue({
 					table += '</tr>';
 				}
 				this.result = table + '</table>';
+				this.stats = v.length + ' filas &times; ' + v[0].length + ' columnas';
 			}
 		},
 		fileNew: function() {
@@ -293,7 +322,9 @@ var app = new Vue({
 		},
 		fileSave: function() {
 			if (!this.filename) {
-				this.filename = prompt('Nombre de fichero:', 'proyecto.json');
+				this.filename = prompt('Nombre de fichero:', 'proyecto');
+				if (!this.filename) return;
+				this.filename += '.json';
 			}
 			var json = {name: this.filename, version: VERSION, oplist : this.oplist};
 
@@ -364,19 +395,21 @@ var app = new Vue({
 				reader.onload = function(event){
 					switch(filetype){
 						case 'csv':
-							var op = self.addOp('op_new_sheet', {texto: event.target.result});
-							self.oplist.push(op);
+							var op = self.addOp('op_read_csv', {csv: event.target.result});
 							self.selectOp(op);
 						break;
 						case 'txt':
 							var op = self.addOp('op_new_text', {texto: event.target.result});
-							self.oplist.push(op);
 							self.selectOp(op);
 						break;
 					}
 				}
 				reader.readAsText(files[i]);
 			};
+		},
+		componentAction: function (event) {
+			var func = event.target.getAttribute('action');
+			this.opdefs[this.selectedop.id][func](event, this.result, this.selectedop);
 		}
 
 	}
@@ -424,6 +457,74 @@ app.registerOp({
 });
 
 app.registerOp({
+	id: 'op_read_csv',
+	label: 'Leer CSV',
+	type: 'matrix',
+	menu: null,
+	params: [
+		{id: 'csv', label: 'CSV', type: 'txt', default: ''},
+		{id: 'fieldsep', label: 'Separador campos', type: 'str', default: ','},
+		{id: 'fielddelim', label: 'Delimitador campos', type: 'str', default: '"'},
+		{id: 'firstrow', label: 'Primera fila', type: 'int', options: {min:1, max:2000}, default: '1'}
+	],
+	render: function (input, selection, op){
+		var newline = '\n';
+		if (op.csv.indexOf('\n') === -1) newline = '\r';
+		var lines = op.csv.split(newline);
+		var rows = lines.length - (op.firstrow - 1);
+		var cols = 0;
+		var mat = new Array(rows);
+		//debugger;
+		for (var r = 0; r < rows; r++) {
+			var line = lines[r + (op.firstrow-1)];
+			mat[r] = [];
+			var state = 0;
+			var field = '';
+			//parse line
+			var linelen = line.length;
+			for (var i = 0; i < linelen; i++) {
+				var c = line[i];
+				switch(state){
+					case 0: //consume non-delimited field
+						if (field.length == 0 && c == op.fielddelim) {
+							state = 1;
+						}
+						else if (c == op.fieldsep || i == linelen - 1) {
+							mat[r].push(field);
+							field = '';
+						}
+						else {
+							field += c;
+						}
+					break; 
+					case 1: //consume inside ""
+						if (c == op.fielddelim) {
+							mat[r].push(field);
+							field = '';
+							state = 2;
+						}
+						else {
+							field += c;
+						}
+					break;
+					case 2: // after closing " jump to next ,
+						if (c == op.fieldsep || i == linelen - 1) {
+							state = 0;
+						}
+					break;
+				}
+			};
+			if (r == 0) cols = mat[r].length;
+			else if (mat[r].length < cols) mat[r][cols - 1] = undefined;
+		};
+		return mat;
+	}
+});
+
+
+
+
+app.registerOp({
 	id: 'op_trim',
 	label: 'Buscar y reemplazar',
 	type: 'all',
@@ -442,14 +543,26 @@ app.registerOp({
 		catch(e){
 			return '<div class="error">error en el campo de búsqueda</div>';
 		}
-		//TODO inselection param is ignored
+		
+		//TODO inselection param is ignored !!!
+
 		if (typeof(input) === 'string') return input.replace(regexp, op.replace);
 
-		var max = 0;
-		for (var i = 0; i < input.length; i++) {
-			for (var j = 0; j < input[i].length; j++) {
-				if (input[i][j]===undefined) continue;
-				input[i][j] = input[i][j].replace(regexp, op.replace);
+		if (op.inselection && selection.sel.length){
+			var arr = selection.toArray();
+			var cols = input[0].length;
+			for (var i = 0; i < arr.length; i++) {
+				var v = input[arr[i] / cols | 0 ][arr[i] % cols];
+				if (v === undefined) continue;
+				input[arr[i] / cols | 0 ][arr[i] % cols] = v.replace(regexp, op.replace);
+			}
+		}
+		else {
+			for (var i = 0; i < input.length; i++) {
+				for (var j = 0; j < input[i].length; j++) {
+					if (input[i][j]===undefined) continue;
+					input[i][j] = input[i][j].replace(regexp, op.replace);
+				}
 			}
 		}
 		return input;
@@ -498,8 +611,26 @@ app.registerOp({
 		}
 		return ret;
 	}
-})
+});
 
+app.registerOp({
+	id: 'op_transpose',
+	label: 'Transponer',
+	type: 'matrix',
+	menu: 'Editar',
+	params: [],
+	render: function (input, selection, op){
+		if (typeof(input)==='string') return input;
+		var ret = new Array(input[0].length);
+		for (var i = 0; i < ret.length; i++) {
+			ret[i] = new Array(input.length);
+			for (var j = 0; j < ret[i].length; j++) {
+				ret[i][j] = input[j][i];
+			};
+		};
+		return ret;
+	}
+});
 
 app.registerOp({
 	id: 'op_sel_text',
@@ -742,11 +873,41 @@ app.registerOp({
 	action: 'selectAll'
 });
 
+
 app.registerOp({
-	id: 'op_export_csv',
-	label: 'Exportar CSV',
-	type: 'file',
-	menu: 'Exportar'
+	id: 'op_write_csv',
+	label: 'Generar CSV',
+	type: 'matrix',
+	menu: 'Exportar',
+	params: [
+		{id: 'filename', label: 'Nombre fichero', type: 'str', default: 'datos.csv'},
+		{id: 'fieldsep', label: 'Separador campos', type: 'str', default: ','},
+		{id: 'fielddelim', label: 'Delimitador campos', type: 'str', default: '"'},
+		{id: 'alwaysdelim', label: 'Delimitar siempre', type: 'bool', default: false},
+		{id: 'actiondownload', label: 'Guardar CSV', type: 'action', default: 'download'}
+	],
+	render: function (input, selection, op){
+		if (typeof(input)==='string') return input;
+		var lines = [];
+		for (var i = 0; i < input.length; i++) {
+			var line= [];
+			for (var j = 0; j < input[i].length; j++) {
+				var field = input[i][j];
+				if (field === undefined) field = '';
+				if (op.alwaysdelim || field.indexOf(op.fieldsep)!==-1){
+					field = op.fielddelim + field + op.fielddelim;
+				}
+				line.push(field)
+			};
+			lines[i] = line.join(op.fieldsep);
+		};
+		return lines.join('\n');
+	},
+	download: function (event, input, op){
+		console.log(input);
+		event.target.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(input);
+		event.target.download = op.filename;
+	}
 });
 
 
@@ -757,18 +918,14 @@ function replaceEscape(str){
 	return str;
 }
 
-for (var veces= 0; veces<2; veces++){
+for (var veces= 0; veces<1; veces++){
 	for(var i in app.opdefs){
-		if (app.opdefs[i].type!=='file') {
+		if (app.opdefs[i].menu && app.opdefs[i].type!=='file') {
 			app.addOp(app.opdefs[i].id);
 		}
 	}
 }
 
-
-document.body.addEventListener('click', function(evt){
-	if(evt.target == document.body || evt.target.id=='oplist') app.selectOp(null);
-});
 
 document.body.addEventListener('keydown', function(evt){
 	app.keyDown(evt);

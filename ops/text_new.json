@@ -1,0 +1,17 @@
+{
+	"id": "text_new",
+	"version": "0.1",
+	"label": "New text",
+	"category": "create",
+	"type": "data",
+	"itype": "any",
+	"otype": "text",
+	"params": [
+		{
+			"name": "text", 
+			"label": "Text", 
+			"type": "text", 
+			"default": "lorem ipsum"
+		}
+	]
+}

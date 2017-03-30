@@ -1,0 +1,37 @@
+{
+	"id": "matrix_new",
+	"version": "0.1",
+	"label": "New matrix",
+	"category": "create",
+	"type": "data",
+	"itype": "any",
+	"otype": "matrix",
+	"params": [
+		{
+			"name": "cols", 
+			"label": "Columns", 
+			"type": "int", 
+			"options": {
+				"min":1, 
+				"max": 2000
+			}, 
+			"default": 4
+		},
+		{
+			"name": "rows", 
+			"label": "Rows",
+			"type": "int", 
+			"options": {
+				"min":1, 
+				"max": 2000
+			}, 
+			"default": 2
+		},
+		{
+			"name": "initval", 
+			"label": "Initial value", 
+			"type": "str", 
+			"default": ""
+		}
+	]
+}

@@ -1,0 +1,15 @@
+{
+	"id": "text_search_and_replace",
+	"version": "0.1",
+	"label": "Search and Replace",
+	"category": "edit",
+	"type": "data",
+	"itype": "text",
+	"otype": "text",
+	"params": [
+		{"name": "search", "label": "Buscar", "type": "regexp", "default": ""},
+		{"name": "replace", "label": "Reemplazar por", "type": "str", "default": ""},
+		{"name": "inselection", "label": "Buscar en la selección", "type": "bool", "default": false},
+		{"name": "casesensitive", "label": "Sensible a mayúsculas", "type": "bool", "default": false}
+	]
+}

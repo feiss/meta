@@ -1,0 +1,21 @@
+
+Operation types:
+- data
+- selection
+- datasel (data and selection)
+
+Data types for input/outputs:
+
+- any
+- text
+- matrix
+- image
+
+
+Data types for parameters:
+
+- text
+- str   (one line string, no \n)
+- float
+- int
+- bool

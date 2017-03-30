@@ -1,0 +1,1 @@
+{"name":"min.json","version":"0.1","oplist":[{"id":"text_new","label":"Nuevo texto","uuid":"ID88496740","active":true,"texto":"cuchufleta"},{"id":"text_search_and_replace","label":"Buscar y reemplazar","uuid":"ID92873796","active":true,"search":"\\v","replace":"*","inselection":false,"casesensitive":true}]}

@@ -1,0 +1,10 @@
+{
+	"id": "matrix_transpose",
+	"version": "0.1",
+	"label": "Transpose",
+	"category": "edit",
+	"type": "data",
+	"itype": "matrix",
+	"otype": "matrix",
+	"params": []
+}

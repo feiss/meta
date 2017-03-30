@@ -9,7 +9,7 @@ var all = {
 console.log('=== Looking for operations in '+opsfolder+' ====');
 fs.readdir(opsfolder, (err, files) => {
   files.forEach(file => {
-    if (file[0] === '.') return;
+    if (file[0] === '.' || file.substr(file.length - 5) !== '.json') return;
   	var obj = JSON.parse(fs.readFileSync(opsfolder+file, 'utf8'));
   	if (obj){
 	  	all.ops.push(obj);

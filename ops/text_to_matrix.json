@@ -1,0 +1,17 @@
+{
+	"id": "text_to_matrix",
+	"version": "0.1",
+	"label": "Text => Matrix",
+	"category": "convert",
+	"type": "data",
+	"itype": "text",
+	"otype": "matrix",
+	"params": [
+		{
+			"name": "separator", 
+			"label": "Field separator", 
+			"type": "str", 
+			"default": " "
+		}
+	]
+}

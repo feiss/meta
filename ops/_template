@@ -1,0 +1,17 @@
+{
+	"id": "",
+	"version": "0.1",
+	"label": "",
+	"category": "",
+	"type": "data",
+	"itype": "",
+	"otype": "",
+	"params": [
+		{
+			"name": "", 
+			"label": "", 
+			"type": "", 
+			"default": ""
+		}
+	]
+}

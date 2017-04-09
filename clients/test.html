@@ -2,8 +2,98 @@
 <head>
 	<title></title>
 	<script type="text/javascript" src="../bindings/js/matrixselection.js"></script>
+<style>
+body{
+	font: 12px sans-serif;
+	width: 600px;
+	margin: 10px auto;
+}
+td{
+	font: 12px sans-serif;
+	text-align: right;
+	padding: 2px 5px;
+}
+#a{
+	display: block;
+}
+.sel{
+	background: #0cf;
+}
+input{
+	font: 15px sans-serif;
+	margin: 10px 0;
+	padding: 5px;
+	outline: none;
+}
+form{
+	display: block;
+}
+blockquote{
+	margin: 0;
+	font-family: monospace;
+}
+</style>
 </head>
 <body>
+<input id="sel">
+<input type="button" value="OK" onclick="dalle(); return false;">
+<div id="a"></div>
+<blockquote id="log"></blockquote>
 
+<script type="text/javascript">
+var a = [];
+for (var i = 0; i < 10; i++) {
+	a[i]= [];
+	for (var j = 0; j < 20; j++) {
+		a[i].push(j*(1+i));
+	};
+};
+
+function drawTable(){
+	var d = document.getElementById('a');
+	var html = '';
+	for (var i = 0; i < a.length; i++) {
+		html += '<tr>';
+		for (var j = 0; j < a[i].length; j++) {
+			html += '<td id="td'+i+'-'+j+'">' + a[i][j] + '</td>';
+		};
+		html += '</tr>';
+	};
+
+	d.innerHTML = '<table>' + html + '</table>';
+}
+
+function logObj(obj){
+	var html = '';
+	for (var i in obj){
+		if (i==='mat') continue;
+		html += i + ': <b>' + obj[i] + '</b>, ';
+	}
+	return html;
+}
+
+function refresh(){
+	var sel = new MatrixSelection(document.getElementById('sel').value);
+	var it;
+	while(it = sel.iterate(a)){
+		document.getElementById('td'+it.row+'-'+it.col).className = 'sel';
+	}
+
+	var log = '<b>' + sel.rows.length + ' rows</b><br>';
+	for (var i = 0; i < sel.rows.length; i++) {
+		log += '<br>[' + i + '] ';
+		log += logObj(sel.rows[i]);
+	 }
+	log += '<br><br><b>iterator</b><br>';
+	log += logObj(sel.iterator);
+	document.getElementById('log').innerHTML = log;
+}
+function dalle(){
+	drawTable();
+	refresh()
+}
+
+drawTable();
+</script>
 </body>
 </html>

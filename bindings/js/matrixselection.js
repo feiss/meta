@@ -43,8 +43,8 @@ MatrixSelection.prototype = {
 		var a = p.match(/^[a-z]+/)[0];
 		var b = p.substr(a.length);
 		if (clamp) {
-			var col = Math.max( 0, Math.min(this.getAlphaIndex(a), this.iterator.cols));
-			var row = Math.max( 0, Math.min(parseInt(b) - 1, this.iterator.rows));
+			var col = Math.max( 0, Math.min(this.getAlphaIndex(a), this.iterator.cols - 1));
+			var row = Math.max( 0, Math.min(parseInt(b) - 1, this.iterator.rows - 1));
 		}
 		else {
 			var col = this.getAlphaIndex(a);
@@ -54,7 +54,7 @@ MatrixSelection.prototype = {
 		}
 		return {rowcol: row, start: col, length: 1, iscolumn: false};
 	},
-	calcRows: function () {
+	calcRows: function (clamp) {
 		// convertir this.sel en arrays [ {rowcol, start, length, iscolumn}, ... ]
 		this.clean();
 		var parts = this.sel.split(',');
@@ -72,7 +72,7 @@ MatrixSelection.prototype = {
 			}
 
 			if (p.indexOf(':') === -1) { // parttype 3 - a1
-				var row = this.getCoordsFromPart(p, false);
+				var row = this.getCoordsFromPart(p, clamp);
 				if (row !== false) {
 					this.rows.push(row);
 				}
@@ -84,29 +84,30 @@ MatrixSelection.prototype = {
 					b = this.getAlphaIndex(b);
 				} 
 				else {
+					//debugger;
 					a = parseInt(a) - 1;
 					b = parseInt(b) - 1;
 				}
-				if (b > a) { var aux = a; a = b; b = aux; }
+				if (b < a) { var aux = a; a = b; b = aux; }
 				if (a < 0) a = 0;
 				if (parttype == 1 && b > this.iterator.cols) b = this.iterator.cols;
 				if (parttype == 2 && b > this.iterator.rows) b = this.iterator.rows;
-				for (var i = a; i <= b; i++) {
+				for (var j = a; j <= b; j++) {
 					if (parttype == 1) {
-						this.rows.push({rowcol: i, start: 0, length: this.iterator.rows, iscolumn: true});
+						this.rows.push({rowcol: j, start: 0, length: this.iterator.rows, iscolumn: true});
 					}
 					else {
-						this.rows.push({rowcol: i, start: 0, length: this.iterator.cols, iscolumn: false});
+						this.rows.push({rowcol: j, start: 0, length: this.iterator.cols, iscolumn: false});
 					}
 				}
 			}
 			else { //parttype 4 - a1:b2
 				var [a, b] = p.split(':');
-				var aa = this.getCoordsFromPart(a);
-				var bb = this.getCoordsFromPart(b);
+				var aa = this.getCoordsFromPart(a, clamp);
+				var bb = this.getCoordsFromPart(b, clamp);
 				if (aa.rowcol > bb.rowcol) {var aux = aa; aa = bb; bb = aux;}
 				var start = Math.min(aa.start, bb.start);
-				var length = Math.max(aa.start, bb.start) - start;
+				var length = Math.max(aa.start, bb.start) - start + 1;
 				for (var r = aa.rowcol; r <= bb.rowcol; r++) {
 					this.rows.push({rowcol: r, start: start, length: length ,iscolumn: false})
 				}
@@ -120,7 +121,9 @@ MatrixSelection.prototype = {
 			this.iterator.cols = this.iterator.mat.length > 0 ? this.iterator.mat[0].length : 0;
 			this.iterator.rowit = 0;
 			this.iterator.it = 0;
-			if (recalculateRows === undefined || recalculateRows === true) this.calcRows();
+			if (recalculateRows === undefined || recalculateRows === true) {
+				this.calcRows();
+			}
 		}
 		else {
 			this.iterator = {mat: undefined, rows: 0, cols: 0, it: 0, rowit: 0};
@@ -133,13 +136,15 @@ MatrixSelection.prototype = {
 		}
 		else {
 			var row = this.rows[this.iterator.rowit];
-			console.log(row)
 			if (this.iterator.it >= row.length){
 				this.iterator.it = 0;
 				this.iterator.rowit ++;
-				if (this.iterator.rowit > this.rows.length) {
+				if (this.iterator.rowit >= this.rows.length) {
 					this.resetIterator(mat, false);
 					return null;
+				}
+				else {
+					row = this.rows[this.iterator.rowit];
 				}
 			}
 			var colit = row.start + this.iterator.it;
@@ -147,15 +152,13 @@ MatrixSelection.prototype = {
 			if (!row.iscolumn) {
 				return { 
 					row: row.rowcol,
-					col: colit,
-					value: this.iterator.mat[row.rowcol][colit]
+					col: colit
 				}
 			}
 			else {
 				return { 
 					row: colit,
-					col: row.rowcol,
-					value: this.iterator.mat[row.rowcol][colit]
+					col: row.rowcol
 				}
 			}
 		}

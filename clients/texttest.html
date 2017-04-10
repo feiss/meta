@@ -1,0 +1,246 @@
+<html>
+<head>
+	<title></title>
+	<script type="text/javascript" src="../bindings/js/textselection.js"></script>
+<style>
+body{
+	font: 12px sans-serif;
+	width: 600px;
+	margin: 10px auto;
+}
+#a{
+	display: block;
+}
+.sel{
+	background: #0cf;
+}
+input{
+	font: 15px sans-serif;
+	margin: 10px 0;
+	padding: 5px;
+	outline: none;
+}
+form{
+	display: block;
+}
+blockquote{
+	margin: 0;
+	font-family: monospace;
+}
+</style>
+</head>
+<body>
+<input id="sel">
+<input type="button" value="OK" onclick="dalle(); return false;">
+<div id="a"></div>
+<blockquote id="log"></blockquote>
+
+<script type="text/javascript">
+var a = `
+/dev/rdisk1s1: fsck_hfs run at Sat Jan 21 10:24:46 2017
+** /dev/rdisk1s1 (NO WRITE)
+   Executing fsck_hfs (version diskdev_cmds-491.6~3).
+** Checking Journaled HFS Plus volume.
+** Checking extents overflow file.
+** Checking catalog file.
+** Checking multi-linked files.
+** Checking catalog hierarchy.
+** Checking extended attributes file.
+** Checking volume bitmap.
+** Checking volume information.
+** The volume Git 2.10.1 Mavericks Intel Universal appears to be OK.
+
+/dev/rdisk2s2: fsck_hfs run at Sat Jan 21 10:57:39 2017
+** /dev/rdisk2s2 (NO WRITE)
+   Executing fsck_hfs (version diskdev_cmds-491.6~3).
+** Checking Journaled HFS Plus volume.
+** Checking extents overflow file.
+** Checking catalog file.
+** Checking multi-linked files.
+** Checking catalog hierarchy.
+** Checking extended attributes file.
+** Checking volume bitmap.
+** Checking volume information.
+** The volume Git 2.2.1 Snow Leopard Intel Universal appears to be OK.
+
+/dev/rdisk1s1: fsck_hfs run at Sat Jan 21 11:12:48 2017
+** /dev/rdisk1s1 (NO WRITE)
+   Executing fsck_hfs (version diskdev_cmds-491.6~3).
+** Checking non-journaled HFS Plus Volume.
+** Checking extents overflow file.
+** Checking catalog file.
+** Checking multi-linked files.
+** Checking catalog hierarchy.
+** Checking extended attributes file.
+** Checking volume bitmap.
+** Checking volume information.
+** The volume MacVim appears to be OK.
+
+/dev/rdisk1s2: fsck_hfs run at Sun Jan 22 00:27:55 2017
+** /dev/rdisk1s2 (NO WRITE)
+   Executing fsck_hfs (version diskdev_cmds-491.6~3).
+** Checking non-journaled HFS Plus Volume.
+** Checking extents overflow file.
+** Checking catalog file.
+** Checking multi-linked files.
+** Checking catalog hierarchy.
+** Checking volume bitmap.
+** Checking volume information.
+** The volume Firefox appears to be OK.
+
+/dev/rdisk1s2: fsck_hfs run at Sun Jan 22 00:32:34 2017
+** /dev/rdisk1s2 (NO WRITE)
+   Executing fsck_hfs (version diskdev_cmds-491.6~3).
+** Checking non-journaled HFS Plus Volume.
+** Checking extents overflow file.
+** Checking catalog file.
+** Checking multi-linked files.
+** Checking catalog hierarchy.
+** Checking volume bitmap.
+** Checking volume information.
+** The volume Firefox appears to be OK.
+
+/dev/rdisk1s2: fsck_hfs run at Sun Jan 22 01:15:37 2017
+** /dev/rdisk1s2 (NO WRITE)
+   Executing fsck_hfs (version diskdev_cmds-491.6~3).
+** Checking Journaled HFS Plus volume.
+** Checking extents overflow file.
+** Checking catalog file.
+** Checking multi-linked files.
+** Checking catalog hierarchy.
+** Checking extended attributes file.
+** Checking volume bitmap.
+** Checking volume information.
+** The volume PCKeyboardHack-7.4.0 appears to be OK.
+
+/dev/rdisk1s1: fsck_hfs run at Mon Feb 20 20:45:21 2017
+** /dev/rdisk1s1 (NO WRITE)
+   Executing fsck_hfs (version diskdev_cmds-491.6~3).
+** Checking non-journaled HFS Plus Volume.
+** Checking extents overflow file.
+** Checking catalog file.
+** Checking multi-linked files.
+** Checking catalog hierarchy.
+** Checking extended attributes file.
+** Checking volume bitmap.
+** Checking volume information.
+** The volume VidyoDesktop Install appears to be OK.
+
+/dev/rdisk1s1: fsck_hfs run at Sun Mar  5 20:31:47 2017
+** /dev/rdisk1s1 (NO WRITE)
+   Executing fsck_hfs (version diskdev_cmds-491.6~3).
+** Checking non-journaled HFS Plus Volume.
+** Checking extents overflow file.
+** Checking catalog file.
+** Checking multi-linked files.
+** Checking catalog hierarchy.
+** Checking extended attributes file.
+** Checking volume bitmap.
+** Checking volume information.
+** The volume Audacity 2.1.2 appears to be OK.
+
+/dev/rdisk2s2: fsck_hfs run at Sun Mar  5 20:32:44 2017
+** /dev/rdisk2s2 (NO WRITE)
+   Executing fsck_hfs (version diskdev_cmds-491.6~3).
+** Checking Journaled HFS Plus volume.
+** Checking extents overflow file.
+** Checking catalog file.
+** Checking multi-linked files.
+** Checking catalog hierarchy.
+** Checking extended attributes file.
+** Checking volume bitmap.
+** Checking volume information.
+** The volume AU Lab appears to be OK.
+
+/dev/rdisk1s1: fsck_hfs run at Wed Mar 22 00:05:19 2017
+** /dev/rdisk1s1 (NO WRITE)
+   Executing fsck_hfs (version diskdev_cmds-491.6~3).
+** Checking non-journaled HFS Plus Volume.
+** Checking extents overflow file.
+** Checking catalog file.
+** Checking multi-linked files.
+** Checking catalog hierarchy.
+** Checking extended attributes file.
+** Checking volume bitmap.
+** Checking volume information.
+** The volume uTorrent appears to be OK.
+
+/dev/rdisk1s1: fsck_hfs run at Wed Mar 22 07:37:04 2017
+** /dev/rdisk1s1 (NO WRITE)
+   Executing fsck_hfs (version diskdev_cmds-491.6~3).
+** Checking Journaled HFS Plus volume.
+** Checking extents overflow file.
+** Checking catalog file.
+** Checking multi-linked files.
+** Checking catalog hierarchy.
+** Checking extended attributes file.
+** Checking volume bitmap.
+** Checking volume information.
+** The volume FlashPlayer appears to be OK.
+
+/dev/rdisk1s1: fsck_hfs run at Mon Mar 27 16:44:26 2017
+** /dev/rdisk1s1 (NO WRITE)
+   Executing fsck_hfs (version diskdev_cmds-491.6~3).
+** Checking Journaled HFS Plus volume.
+** Checking extents overflow file.
+** Checking catalog file.
+** Checking multi-linked files.
+** Checking catalog hierarchy.
+** Checking extended attributes file.
+** Checking volume bitmap.
+** Checking volume information.
+** The volume TeamViewer appears to be OK.
+
+/dev/rdisk1s2: fsck_hfs run at Wed Apr  5 01:53:57 2017
+** /dev/rdisk1s2 (NO WRITE)
+   Executing fsck_hfs (version diskdev_cmds-491.6~3).
+** Checking Journaled HFS Plus volume.
+** Checking extents overflow file.
+** Checking catalog file.
+** Checking multi-linked files.
+** Checking catalog hierarchy.
+** Checking extended attributes file.
+** Checking volume bitmap.
+** Checking volume information.
+** The volume QuickLook CSV appears to be OK.
+`;
+
+
+function logObj(obj){
+	var html = '';
+	for (var i in obj){
+		if (i==='mat') continue;
+		html += i + ': <b>' + obj[i] + '</b>, ';
+	}
+	return html;
+}
+
+function refresh(){
+	var sel = new TextSelection(document.getElementById('sel').value);
+	var it;
+	var html = '';
+	while(it = sel.iterate(a)){
+		if (it.selected) html += '<span class="sel">';
+		html += a.substring(it.start, it.end);
+		if (it.selected) html += '</span>';
+	}
+	document.getElementById('a').innerHTML = html;
+/*
+	var log = '<b>' + sel.rows.length + ' rows</b><br>';
+	for (var i = 0; i < sel.rows.length; i++) {
+		log += '<br>[' + i + '] ';
+		log += logObj(sel.rows[i]);
+	 }
+	log += '<br><br><b>iterator</b><br>';
+	log += logObj(sel.iterator);
+	document.getElementById('log').innerHTML = log;
+	*/
+}
+function dalle(){
+	refresh()
+}
+
+refresh();
+</script>
+</body>
+</html>
